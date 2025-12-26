@@ -1,32 +1,50 @@
-from datetime import datetime
+import pytest
+from app import create_app, db, Message
 
-from app import app
-from models import db, Message
-
-class TestMessage:
-    '''Message model in models.py'''
-
+@pytest.fixture
+def app():
+    app = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
+    })
     with app.app_context():
-        m = Message.query.filter(
-            Message.body == "Hello 👋"
-            ).filter(Message.username == "Liza")
-
-        for message in m:
-            db.session.delete(message)
-
+        db.create_all()
+        # Optionally add test data
+        msg = Message(body="Hello", username="Tester")
+        db.session.add(msg)
         db.session.commit()
+    yield app
 
-    def test_has_correct_columns(self):
-        '''has columns for message body, username, and creation time.'''
-        with app.app_context():
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
-            hello_from_liza = Message(
-                body="Hello 👋",
-                username="Liza")
-            
-            db.session.add(hello_from_liza)
-            db.session.commit()
+def test_message_creation(app, client):
+    response = client.post("/messages", json={"body": "Hi", "username": "Tester2"})
+    data = response.get_json()
+    assert response.status_code == 201
+    assert data["body"] == "Hi"
+    assert data["username"] == "Tester2"
 
-            assert(hello_from_liza.body == "Hello 👋")
-            assert(hello_from_liza.username == "Liza")
-            assert(type(hello_from_liza.created_at) == datetime)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

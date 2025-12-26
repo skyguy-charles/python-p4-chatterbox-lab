@@ -1,26 +1,184 @@
-from flask import Flask, request, make_response, jsonify
-from flask_cors import CORS
-from flask_migrate import Migrate
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
-from models import db, Message
+db = SQLAlchemy()  # ⚡ Not bound to app yet
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.json.compact = False
+# Message model
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.String(200), nullable=False)
+    username = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-CORS(app)
-migrate = Migrate(app, db)
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "body": self.body,
+            "username": self.username,
+            "created_at": self.created_at.isoformat()
+        }
 
-db.init_app(app)
+# Factory function
+def create_app(test_config=None):
+    app = Flask(__name__)
+    
+    # Default config
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///messages.db"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-@app.route('/messages')
-def messages():
-    return ''
+    # Override config for testing
+    if test_config:
+        app.config.update(test_config)
 
-@app.route('/messages/<int:id>')
-def messages_by_id(id):
-    return ''
+    db.init_app(app)  # ⚡ Bind db to app
 
-if __name__ == '__main__':
-    app.run(port=5555)
+    # Routes
+    @app.route("/messages", methods=["POST"])
+    def create_message():
+        data = request.get_json()
+        msg = Message(body=data["body"], username=data["username"])
+        db.session.add(msg)
+        db.session.commit()
+        return jsonify(msg.to_dict()), 201
+
+    @app.route("/messages/<int:msg_id>", methods=["GET", "PUT"])
+    def handle_message(msg_id):
+        msg = Message.query.get(msg_id)
+        if not msg:
+            return jsonify({"error": "Message not found"}), 404
+
+        if request.method == "PUT":
+            data = request.get_json()
+            msg.body = data.get("body", msg.body)
+            db.session.commit()
+
+        return jsonify(msg.to_dict())
+
+    return app
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
